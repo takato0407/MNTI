@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import gspread
 from google.oauth2.service_account import Credentials
+from google_sheets import add_sleep_record
 import requests
 import openai
 
@@ -23,8 +24,9 @@ openai.api_key = OPENAI_API_KEY
 # 🧾 Googleスプレッドシート接続設定
 # -------------------------
 # credentials.json の読み込み
-creds = Credentials.from_service_account_file(
-    "credentials.json",
+creds_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+creds = Credentials.from_service_account_info(
+    creds_info,
     scopes=[
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
@@ -97,12 +99,7 @@ def send_line_message(user_id, message):
 # 📥 エンドポイント：/sleep
 # -------------------------
 @app.post("/sleep")
-def receive_sleep_data(data: SleepData):
-    # AIアドバイス生成
-    advice = generate_advice(data.sleep_start, data.sleep_end)
-
-    # スプレッドシートに保存
-    sheet.append_row([data.user_id, data.sleep_start, data.sleep_end, advice])
-
-    # LINEに送信
-    send_li_
+async def record_sleep(data: SleepData):
+    advice = generate_advice(data.sleep_start, data.sleep_end)  # ChatGPT部分
+    add_sleep_record(data.user_id, data.sleep_start, data.sleep_end, advice)
+    return {"message": "Data added to Google Sheets", "advice": advice}
